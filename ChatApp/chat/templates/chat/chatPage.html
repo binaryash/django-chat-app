@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Page</title>
+    <!-- Include Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Include Google Font for a Hacker-style font -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-gray-900 font-sans flex flex-col items-center h-screen text-gray-200">
+
+    <!-- Welcome Message with adjusted position and taller font -->
+    <div class="absolute left-12 sm:left-16 top-8 sm:top-12">
+      <h1 class="text-3xl sm:text-4xl font-bold text-green-400" style="font-family: 'Press Start 2P', cursive; line-height: 1.5; letter-spacing: 0.5px;">
+        Welcome, {{ request.user.username }}
+      </h1>
+    </div>
+
+    <!-- Logout Button positioned to the right -->
+    {% if request.user.is_authenticated %}
+    <div class="absolute right-8 top-8 sm:top-12">
+      <form action="{% url 'logout-user' %}" method="POST">
+        {% csrf_token %}
+        <button type="submit" class="text-gray-300 hover:text-green-500 text-lg sm:text-xl">
+          Logout
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Chat Container with space adjustment -->
+    <div class="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-8 max-w-2xl w-full mt-24 sm:mt-32 mb-4 space-y-4 flex flex-col justify-end h-3/4">
+      <div id="id_chat_item_container" class="overflow-y-auto space-y-2 text-lg sm:text-xl" style="font-size: 20px; max-height: 400px;">
+        <!-- Chat messages will appear here -->
+      </div>
+
+      <!-- Message Input and Button -->
+      <div class="flex items-center space-x-4">
+        <input
+          type="text"
+          id="id_message_send_input"
+          class="flex-grow p-2 sm:p-3 bg-gray-700 text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="Type a message..."
+        />
+        <button
+          type="submit"
+          id="id_message_send_button"
+          class="bg-gray-900 text-gray-200 py-2 sm:py-3 px-4 sm:px-6 rounded-md hover:bg-green-600 transition duration-200"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const chatSocket = new WebSocket("ws://" + window.location.host + "/");
+      chatSocket.onopen = function (e) {
+        console.log("The connection was set up successfully!");
+      };
+      chatSocket.onclose = function (e) {
+        console.log("Something unexpected happened!");
+      };
+      
+      document.querySelector("#id_message_send_input").focus();
+      document.querySelector("#id_message_send_input").onkeyup = function (e) {
+        if (e.keyCode == 13) {
+          document.querySelector("#id_message_send_button").click();
+        }
+      };
+      
+      document.querySelector("#id_message_send_button").onclick = function (e) {
+        var messageInput = document.querySelector("#id_message_send_input").value;
+        chatSocket.send(JSON.stringify({ message: messageInput, username: "{{ request.user.username }}" }));
+      };
+
+      chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        var div = document.createElement("div");
+        div.innerHTML = `<strong class="text-green-400">${data.username}</strong>: ${data.message}`;
+        document.querySelector("#id_message_send_input").value = "";
+        document.querySelector("#id_chat_item_container").appendChild(div);
+        document.querySelector("#id_chat_item_container").scrollTop = document.querySelector("#id_chat_item_container").scrollHeight;
+      };
+    </script>
+
+  </body>
+</html>
